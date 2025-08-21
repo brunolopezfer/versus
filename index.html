@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Versus — Clientes y Calculadoras</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#151933; --muted:#8b90b3; --text:#eef0ff;
+    --accent:#6dd3ff; --accent-2:#7effb2; --danger:#ff6d8b; --ring: rgba(109,211,255,.35);
+    --shadow: 0 6px 24px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.03);
+    --yellow:#ffd26a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0e1020;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,sans-serif}
+  header{position:sticky;top:0;background:#121530;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 16px;z-index:10}
+  h1{margin:0;font-size:18px;display:flex;gap:10px;align-items:center}
+  .brand{display:inline-flex;gap:10px;align-items:center}
+  .brand svg{width:28px;height:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+  .brand .title{font-weight:700;letter-spacing:.4px}
+  .status{font-size:12px;color:var(--muted)}
+  #backupControls{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+
+  nav{display:flex;position:sticky;top:86px;z-index:9}
+  nav button{flex:1;padding:12px;border:0;background:#1a1f3d;color:var(--muted);cursor:pointer;transition:color .2s ease, background .3s ease}
+  nav button.active{color:var(--text);background:linear-gradient(180deg,rgba(109,211,255,.18),rgba(109,211,255,.08));border-bottom:2px solid var(--accent)}
+
+  main{padding:14px}
+  section{display:none;opacity:0;transform:translateY(6px);transition:opacity .25s ease, transform .25s ease}
+  section.active{display:block;opacity:1;transform:translateY(0)}
+
+  .card{background:#151933;border:1px solid rgba(255,255,255,.08);border-radius:12px;box-shadow:var(--shadow);padding:12px;margin-bottom:14px}
+  input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text);outline:none}
+  textarea{min-height:80px;resize:vertical}
+  select{color:#cfd3ff;background:rgba(255,255,255,.08);} 
+  select option{color:#cfd3ff;background:#1b2042}
+
+  label{font-size:12px;color:var(--muted);display:block;margin:6px 0}
+  .btn{border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer}
+  .btn.primary{border-color:var(--accent);background:linear-gradient(180deg,rgba(109,211,255,.35),rgba(109,211,255,.15))}
+  .btn.icon{display:inline-flex;align-items:center;gap:6px}
+  .grid{display:grid;gap:10px}
+  .grid.two{grid-template-columns:1fr 1fr}
+  @media (max-width:720px){.grid.two{grid-template-columns:1fr}}
+  .muted{color:var(--muted);font-size:12px}
+  .ok{color:var(--accent-2)} .bad{color:var(--danger)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* ---------- Cliente (collapsible con flechita) ---------- */
+  details.client{padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.04);margin-bottom:12px}
+  details.client summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px; position:relative;}
+  details.client summary::-webkit-details-marker{display:none}
+  .client-left{display:flex;align-items:center;gap:10px}
+  .client-name{font-weight:600}
+  .client-name.pending{color:var(--yellow)}
+  .client-name.accepted{color:var(--accent-2)}
+  .client-time{color:var(--muted);font-size:12px}
+  .chev{transition:transform .2s ease}
+  details[open] .chev{transform:rotate(90deg)}
+  .client-body{padding:10px 4px 2px}
+
+  .client-view{display:grid;gap:8px}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center}
+  .kv .k{color:var(--muted);font-size:12px}
+
+  .client-edit{display:none;opacity:0;transform:translateY(6px);transition:opacity .2s ease, transform .2s ease}
+  .editing .client-view{display:none}
+  .editing .client-edit{display:block;opacity:1;transform:translateY(0)}
+
+  /* ---- Bloques de resultado elegantes ---- */
+  .result { gap: 14px; }
+  .result-block {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 12px 12px 14px;
+    box-shadow: var(--shadow);
+    margin: 10px 0;
+  }
+  .result-block h4 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    letter-spacing: .3px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .kpi .label{font-size:12px;color:var(--muted)}
+  .kpi .value{font-size:22px;font-weight:700;margin-top:4px}
+  .kpi .value.positive{color:var(--accent-2)}
+  .kpi .value.negative{color:var(--danger)}
+
+  /* ---- Swipe to delete (móvil) ---- */
+  .swipe-wrap{position:relative; overflow:hidden; width:100%;}
+  .swipe-content{position:relative; z-index:2; touch-action:pan-y; transition:transform .2s ease;}
+  .swipe-actions{position:absolute; inset:0 0 0 auto; right:6px; display:flex; align-items:center; justify-content:flex-end; padding-right:2px; gap:8px; z-index:1;}
+  .swipe-actions .del{background:#CC2B3A; border:1px solid rgba(0,0,0,.2); color:#fff; padding:8px 12px; border-radius:10px; font-weight:700;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#6dd3ff"/>
+          <stop offset="1" stop-color="#7effb2"/>
+        </linearGradient>
+      </defs>
+      <rect x="6" y="8" width="52" height="48" rx="12" fill="url(#g)"/>
+      <path d="M18 42 L30 22 L26 22 L38 10 L34 22 L46 22 Z" fill="#0f1220" opacity=".9"/>
+    </svg>
+    <span class="title">VERSUS</span>
+  </h1>
+  <div id="cloudStatus" class="status">Guardado local: listo</div>
+  <div id="backupControls">
+    <button id="btnExport" class="btn" style="padding:6px 10px;">Exportar clientes</button>
+    <label class="btn" style="padding:6px 10px; cursor:pointer;">
+      Importar backup<input id="fileImport" type="file" accept="application/json" style="display:none;">
+    </label>
+    <button id="btnPasteImport" class="btn" style="padding:6px 10px;">Pegar backup (JSON)</button>
+  </div>
+</header>
+
+<nav>
+  <button id="tabClientes" class="active">Clientes</button>
+  <button id="tabSurebet">Calculadora Surebet</button>
+  <button id="tabFreebet">Calculadora Freebet</button>
+</nav>
+
+<main>
+  <!-- CLIENTES -->
+  <section id="secClientes" class="active">
+    <div class="card">
+      <button class="btn primary" id="btnAdd">+ Añadir cliente</button>
+      <span class="muted" style="margin-left:8px">Se guarda automáticamente en este dispositivo.</span>
+    </div>
+
+    <div id="clientsList"></div>
+  </section>
+
+  <!-- SUREBET -->
+  <section id="secSurebet">
+    <div class="card">
+      <div class="grid two">
+        <div>
+          <label>Casa 1 - Cuota</label>
+          <input type="number" id="sb_c1c" step="0.01" placeholder="2.10">
+        </div>
+        <div>
+          <label>Casa 1 - Importe (€)</label>
+          <input type="number" id="sb_c1i" step="0.01" placeholder="(vacío para calcular)">
+        </div>
+        <div>
+          <label>Casa 2 - Cuota</label>
+          <input type="number" id="sb_c2c" step="0.01" placeholder="2.00">
+        </div>
+        <div>
+          <label>Casa 2 - Importe (€)</label>
+          <input type="number" id="sb_c2i" step="0.01" placeholder="(vacío para calcular)">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="sb_calc">Calcular</button>
+        <span class="muted">Si falta un importe, calculo el stake para <strong>igualar</strong> y también las dos opciones de <strong>0€</strong> (C1 y C2) mostrando el efecto en la otra casa.</span>
+      </div>
+    </div>
+    <div class="card">
+      <div id="sb_result" class="result"></div>
+    </div>
+  </section>
+
+  <!-- FREEBET -->
+  <section id="secFreebet">
+    <div class="card">
+      <div class="grid two">
+        <div>
+          <label>Valor de la freebet (€)</label>
+          <input id="fb_valor" type="number" step="0.01" placeholder="100">
+        </div>
+        <div>
+          <label>Cuota donde usas la freebet (o₁)</label>
+          <input id="fb_cuota_fb" type="number" step="0.01" placeholder="2.20">
+        </div>
+        <div>
+          <label>Cuota en la otra casa para cubrir (o₂)</label>
+          <input id="fb_cuota_ot" type="number" step="0.01" placeholder="1.85">
+        </div>
+      </div>
+      <div style="margin-top:10px"><button class="btn primary" id="fb_calc">Calcular</button></div>
+    </div>
+    <div class="card">
+      <div id="fb_result" class="result"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const LOCAL_KEY = "versus_clients_v3";
+let clients = [];
+let saveTimer = null;
+
+function $(sel){ return document.querySelector(sel); }
+function el(tag, html){ const e=document.createElement(tag); e.innerHTML=html; return e; }
+function parseNum(v){ const n=parseFloat(String(v).replace(',','.')); return isFinite(n)?n:0; }
+function fmt(n){ return (Number(n)||0).toFixed(2); }
+function d4(v){ return String(v||'').replace(/\\D/g,'').slice(0,4); }
+function setStatus(msg){ const s=$('#cloudStatus'); if(s) s.textContent = msg; }
+function isAccepted(s){ return String(s).toLowerCase()==='aceptada'; }
+function kpi(label,value,opts={}){
+  const num = parseFloat(String(value).replace(',', '.'));
+  const isNum = !Number.isNaN(num);
+  const cls = (opts.signColor===false || !isNum) ? '' : (num>=0 ? 'positive' : 'negative');
+  return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+cls+'">'+value+'</div>'+(opts.sub?'<div class="muted" style="margin-top:6px">'+opts.sub+'</div>':'')+'</div>';
+}
+
+[{btn:'#tabClientes', sec:'#secClientes'},{btn:'#tabSurebet',sec:'#secSurebet'},{btn:'#tabFreebet',sec:'#secFreebet'}].forEach(t=>{
+  $(t.btn).addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    $(t.btn).classList.add('active'); $(t.sec).classList.add('active');
+  });
+});
+
+$('#btnAdd').addEventListener('click', ()=>{
+  const id = 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+  const newClient = {
+    id, createdAt: Date.now(),
+    name:'', email:'', user:'', pass:'', address:'',
+    retirada:'No realizada', ingresoCode:'', retiroCode:'',
+    ap1:{txt:'',perdida:0}, ap2:{txt:'',ganancia:0}, editing:true
+  };
+  clients.unshift(newClient);
+  renderClients();
+  const det = document.getElementById('box-'+id); if(det){ det.open = true; }
+  const inp = document.getElementById('name-'+id); if(inp) inp.focus();
+  scheduleSave();
+});
+
+function updateClient(id, path, value, rerender=false){
+  const c = clients.find(x=>x.id===id); if(!c) return;
+  if(path.startsWith('ap1.') || path.startsWith('ap2.')){
+    const [ap, key] = path.split('.');
+    c[ap][key] = (key==='perdida' || key==='ganancia') ? parseNum(value) : value;
+  }else{
+    if(path==='ingresoCode' || path==='retiroCode') value = d4(value);
+    c[path] = value;
+  }
+  if(rerender) renderClients();
+  scheduleSave();
+}
+
+function deleteClient(id){
+  clients = clients.filter(x=>x.id!==id);
+  renderClients();
+  scheduleSave();
+}
+
+function toggleEdit(id, force){
+  const c = clients.find(x=>x.id===id); if(!c) return;
+  c.editing = typeof force==='boolean' ? force : !c.editing;
+  renderClients();
+  const det = document.getElementById('box-'+id); if(det) det.open = true;
+}
+
+function saveClient(id){
+  const c = clients.find(x=>x.id===id); if(!c) return;
+  c.editing = false;
+  renderClients();
+  scheduleSave();
+}
+
+function updateFinal(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const final = (parseNum(c.ap2.ganancia)||0) - (parseNum(c.ap1.perdida)||0);
+  const elSpan = document.getElementById('final-'+id);
+  if(elSpan){
+    elSpan.textContent = fmt(final) + ' €';
+    elSpan.className = final>=0 ? 'ok' : 'bad';
+  }
+}
+
+function renderClients(){
+  const list = $('#clientsList');
+  list.innerHTML = '';
+  if(!Array.isArray(clients)) clients = [];
+  clients.forEach(c=>{ if(!c.createdAt) c.createdAt = Date.now(); });
+  const sorted = [...clients].sort((a,b)=> b.createdAt - a.createdAt);
+
+  if(sorted.length===0){
+    list.appendChild(el('div','<div class="card muted">No hay clientes. Pulsa "+ Añadir cliente" ↑</div>'));
+    return;
+  }
+
+  sorted.forEach(c=>{
+    const final = (parseNum(c.ap2.ganancia)||0) - (parseNum(c.ap1.perdida)||0);
+    const colorClass = isAccepted(c.retirada) ? 'accepted' : 'pending';
+    const node = el('div', `
+      <details class="client ${c.editing?'editing':''}" id="box-${c.id}" ${c.editing?'open':''}>
+        <summary>
+          <div class="client-left">
+            <span class="chev">▶</span>
+            <span id="namehdr-${c.id}" class="client-name ${colorClass}">${(c.name||'Nombre y apellidos').replace(/</g,'&lt;')}</span>
+          </div>
+          <div class="client-time">${new Date(c.createdAt).toLocaleString()}</div>
+        </summary>
+        <div class="client-body">
+          <!-- Vista bonita -->
+          <div class="client-view">
+            <div class="kv"><div class="k">Email</div><div>${(c.email||'-').replace(/</g,'&lt;')}</div></div>
+            <div class="kv"><div class="k">Usuario</div><div>${(c.user||'-').replace(/</g,'&lt;')}</div></div>
+            <div class="kv"><div class="k">Contraseña</div><div>••••••</div></div>
+            <div class="kv"><div class="k">Dirección</div><div>${(c.address||'-').replace(/</g,'&lt;')}</div></div>
+            <div class="kv"><div class="k">Retiradas</div><div><strong>${c.retirada}</strong></div></div>
+            <div class="kv"><div class="k">Método ingreso</div><div>${(c.ingresoCode||'').toString().padEnd(4,'·')}</div></div>
+            <div class="kv"><div class="k">Método retirada</div><div>${(c.retiroCode||'').toString().padEnd(4,'·')}</div></div>
+            <div class="kv"><div class="k">1ª apuesta</div><div>${(c.ap1.txt||'-').replace(/</g,'&lt;')} · Pérdida: ${fmt(c.ap1.perdida)} €</div></div>
+            <div class="kv"><div class="k">2ª apuesta</div><div>${(c.ap2.txt||'-').replace(/</g,'&lt;')} · Ganancia: ${fmt(c.ap2.ganancia)} €</div></div>
+            <div class="kv"><div class="k"><strong>Ganancia final</strong></div><div><strong id="final-${c.id}" class="${final>=0?'ok':'bad'}">${fmt(final)} €</strong></div></div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn icon" onclick="toggleEdit('${c.id}', true)">✏️ Editar</button>
+              <button class="btn" onclick="deleteClient('${c.id}')">Eliminar</button>
+            </div>
+          </div>
+
+          <!-- Edición -->
+          <div class="client-edit">
+            <div class="grid two">
+              <div><label>Nombre y apellidos</label>
+                <input id="name-${c.id}" value="${(c.name||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','name',this.value); document.getElementById('namehdr-${c.id}').textContent=this.value||'Nombre y apellidos'">
+              </div>
+              <div><label>Email</label>
+                <input value="${(c.email||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','email',this.value)">
+              </div>
+            </div>
+
+            <div class="grid two" style="margin-top:8px">
+              <div><label>Usuario</label>
+                <input value="${(c.user||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','user',this.value)">
+              </div>
+              <div><label>Contraseña</label>
+                <div class="row">
+                  <input id="pass-${c.id}" type="password" value="${(c.pass||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','pass',this.value)">
+                  <button class="btn" type="button" onclick="const p=document.getElementById('pass-${c.id}'); p.type=p.type==='password'?'text':'password'">👁️</button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label>Dirección</label>
+              <input value="${(c.address||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','address',this.value)">
+            </div>
+
+            <div class="grid two" style="margin-top:8px">
+              <div>
+                <label>Retiradas</label>
+                <select onchange="updateClient('${c.id}','retirada',this.value); updateHeaderStatus('${c.id}');">
+                  ${['No realizada','Pendiente','Aceptada'].map(opt=>`<option ${c.retirada===opt?'selected':''}>${opt}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="muted">Estado de retirada</label>
+                <div><strong>${c.retirada}</strong></div>
+              </div>
+            </div>
+
+            <div class="grid two">
+              <div>
+                <label>Método de ingreso (4 dígitos)</label>
+                <input value="${(c.ingresoCode||'').replace(/\"/g,'&quot;')}" inputmode="numeric" maxlength="4" oninput="updateClient('${c.id}','ingresoCode',this.value)">
+              </div>
+              <div>
+                <label>Método de retirada (4 dígitos)</label>
+                <input value="${(c.retiroCode||'').replace(/\"/g,'&quot;')}" inputmode="numeric" maxlength="4" oninput="updateClient('${c.id}','retiroCode',this.value)">
+              </div>
+            </div>
+
+            <div style="margin-top:8px"><strong>Primera apuesta</strong></div>
+            <textarea placeholder="Partido / Mercado" oninput="updateClient('${c.id}','ap1.txt',this.value)">${(c.ap1.txt||'').replace(/</g,'&lt;')}</textarea>
+            <label>Pérdida (€)</label>
+            <input type="number" step="0.01" value="${c.ap1.perdida}"
+                   oninput="updateClient('${c.id}','ap1.perdida',this.value); updateFinal('${c.id}');">
+
+            <div style="margin-top:8px"><strong>Segunda apuesta</strong></div>
+            <textarea placeholder="Partido / Mercado" oninput="updateClient('${c.id}','ap2.txt',this.value)">${(c.ap2.txt||'').replace(/</g,'&lt;')}</textarea>
+            <label>Freebet / Ganancia (€)</label>
+            <input type="number" step="0.01" value="${c.ap2.ganancia}"
+                   oninput="updateClient('${c.id}','ap2.ganancia',this.value); updateFinal('${c.id}');">
+
+            <div class="row" style="margin-top:10px;justify-content:space-between">
+              <button class="btn" onclick="deleteClient('${c.id}')">Eliminar</button>
+              <button class="btn primary" onclick="saveClient('${c.id}')">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    `);
+    list.appendChild(node);
+  });
+
+  // después de pintar, activa swipe en summaries
+  setTimeout(wireSwipe, 0);
+}
+
+function updateHeaderStatus(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const nameEl = document.getElementById('namehdr-'+id);
+  if(nameEl){
+    nameEl.classList.toggle('accepted', isAccepted(c.retirada));
+    nameEl.classList.toggle('pending', !isAccepted(c.retirada));
+  }
+}
+
+$('#sb_calc').addEventListener('click', ()=>{
+  const c1c=parseNum($('#sb_c1c').value), c1iRaw=$('#sb_c1i').value,
+        c2c=parseNum($('#sb_c2c').value), c2iRaw=$('#sb_c2i').value;
+  const c1i = c1iRaw===''? null : parseNum(c1iRaw);
+  const c2i = c2iRaw===''? null : parseNum(c2iRaw);
+  if(c1c<=1 || c2c<=1){ alert('Revisa las cuotas (>1).'); return; }
+  if((c1i!==null && c1i<0) || (c2i!==null && c2i<0)){ alert('Importes ≥ 0.'); return; }
+  const out = [];
+  const win1 = (x1,x2)=> x1*(c1c-1) - (x2??0);
+  const win2 = (x1,x2)=> x2*(c2c-1) - (x1??0);
+  if(c1i!==null && c2i!==null){
+    const r1 = win1(c1i,c2i);
+    const r2 = win2(c1i,c2i);
+    out.push('<div class="kpis">'+kpi('Si gana Casa 1', fmt(r1)+' €') + kpi('Si gana Casa 2', fmt(r2)+' €')+'</div>');
+  } else if(c1i===null && c2i===null){
+    out.push('<div class="muted">Introduce el importe de al menos una casa para poder calcular.</div>');
+  } else {
+    if(c1i===null){
+      const x_equal = (c2i*c2c)/c1c;
+      const x_zero_loss_c1 = (c1c-1)>0 ? (c2i/(c1c-1)) : 0;
+      const r2_if_c1_zero = win2(x_zero_loss_c1,c2i);
+      const x_zero_loss_c2 = c2i*(c2c-1);
+      const r1_if_c2_zero = win1(x_zero_loss_c2,c2i);
+      const r1_equal = win1(x_equal,c2i), r2_equal = win2(x_equal,c2i);
+      out.push('<div class="kpis">'+
+        kpi('Importe C1 (igualar)', fmt(x_equal)+' €', {signColor:false, sub:'Esc.1: '+fmt(r1_equal)+' € · Esc.2: '+fmt(r2_equal)+' €'}) +
+        kpi('C1 = 0€ pérdida/ganancia', fmt(x_zero_loss_c1)+' €', {signColor:false, sub:'C2 quedaría en '+fmt(r2_if_c1_zero)+' €'}) +
+        kpi('C2 = 0€ pérdida/ganancia', fmt(x_zero_loss_c2)+' €', {signColor:false, sub:'C1 quedaría en '+fmt(r1_if_c2_zero)+' €'}) +
+      '</div>');
+    } else {
+      const y_equal = (c1i*c1c)/c2c;
+      const y_zero_loss_c1 = c1i*(c1c-1);
+      const r2_if_c1_zero = win2(c1i,y_zero_loss_c1);
+      const y_zero_loss_c2 = (c2c-1)>0 ? (c1i/(c2c-1)) : 0;
+      const r1_if_c2_zero = win1(c1i,y_zero_loss_c2);
+      const r1_equal = win1(c1i,y_equal), r2_equal = win2(c1i,y_equal);
+      out.push('<div class="kpis">'+
+        kpi('Importe C2 (igualar)', fmt(y_equal)+' €', {signColor:false, sub:'Esc.1: '+fmt(r1_equal)+' € · Esc.2: '+fmt(r2_equal)+' €'}) +
+        kpi('C1 = 0€ pérdida/ganancia', fmt(y_zero_loss_c1)+' €', {signColor:false, sub:'C2 quedaría en '+fmt(r2_if_c1_zero)+' €'}) +
+        kpi('C2 = 0€ pérdida/ganancia', fmt(y_zero_loss_c2)+' €', {signColor:false, sub:'C1 quedaría en '+fmt(r1_if_c2_zero)+' €'}) +
+      '</div>');
+    }
+  }
+  $('#sb_result').innerHTML = '<div class="result-block"><h4>Resultados</h4>' + out.join('') + '</div>';
+});
+
+$('#fb_calc').addEventListener('click', ()=>{
+  const F=parseNum($('#fb_valor').value), o1=parseNum($('#fb_cuota_fb').value), o2=parseNum($('#fb_cuota_ot').value);
+  if(F<=0 || o1<=1 || o2<=1){ alert('Introduce F>0 y cuotas > 1.00'); return; }
+  const H=((o1-1)*F)/o2;
+  const profitEqual=H*(o2-1);
+  const ifWinFree=(o1-1)*F - H;
+  const ifLoseFree=H*(o2-1);
+  const pct=profitEqual/F*100;
+  const tiles = [
+    kpi('Stake cobertura', fmt(H)+' €', {signColor:false}),
+    kpi('Beneficio asegurado', fmt(profitEqual)+' €'),
+    kpi('% sobre freebet', fmt(pct)+' %', {signColor:false}),
+  ].join('');
+  const scenarios = [
+    kpi('Si gana donde usas la freebet', fmt(ifWinFree)+' €'),
+    kpi('Si pierde la freebet (gana cobertura)', fmt(ifLoseFree)+' €')
+  ].join('');
+  $('#fb_result').innerHTML =
+    '<div class="result-block"><h4>Resumen</h4><div class="kpis">'+tiles+'</div></div>' +
+    '<div class="result-block"><h4>Escenarios</h4><div class="kpis">'+scenarios+'</div></div>';
+});
+
+// ======= Persistencia robusta (IndexedDB + persist()) =======
+const DB_NAME = 'versus_db', STORE = 'clients';
+let db;
+
+async function requestPersistentStorage(){
+  try{
+    if (navigator.storage && navigator.storage.persist) {
+      const persisted = await navigator.storage.persisted();
+      if (!persisted) { await navigator.storage.persist(); }
+    }
+  }catch{}
+}
+
+function openDB(){
+  return new Promise((res, rej)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        d.createObjectStore(STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = ()=>{ db=req.result; res(); };
+    req.onerror = ()=> rej(req.error);
+  });
+}
+function idbGetAll(){
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(STORE, 'readonly');
+    const st = tx.objectStore(STORE);
+    const req = st.getAll();
+    req.onsuccess = ()=> res(req.result||[]);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+function idbPutMany(arr){
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    const st = tx.objectStore(STORE);
+    arr.forEach(x=> st.put(x));
+    tx.oncomplete = ()=> res(true);
+    tx.onerror = ()=> rej(tx.error);
+  });
+}
+function idbClear(){
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    const st = tx.objectStore(STORE);
+    const req = st.clear();
+    req.onsuccess = ()=> res(true);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+
+async function saveLocal(){
+  try{
+    await idbPutMany(clients || []);
+    setStatus('Guardado local (IndexedDB): ok');
+  }catch(err){
+    console.warn('IDB SAVE error', err);
+    setStatus('Guardado local (IndexedDB): error');
+    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify({clients})); }catch{}
+  }
+}
+
+async function loadLocal(){
+  try{
+    await openDB();
+    const fromIDB = await idbGetAll();
+    if (fromIDB && fromIDB.length){
+      clients = fromIDB;
+      return true;
+    }
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      const lc = (parsed && Array.isArray(parsed.clients)) ? parsed.clients : [];
+      if (lc.length){
+        clients = lc;
+        await idbPutMany(clients);
+        return true;
+      }
+    }
+  }catch(err){ console.warn('IDB LOAD error', err); }
+  return false;
+}
+
+function wireBackupButtons(){
+  const btnExp = document.getElementById('btnExport');
+  const fileInp = document.getElementById('fileImport');
+  const pasteBtn = document.getElementById('btnPasteImport');
+
+  if (btnExp){
+    btnExp.addEventListener('click', ()=>{
+      try{
+        const blob = new Blob([JSON.stringify({clients}, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'versus_backup.json'; a.click();
+        URL.revokeObjectURL(url);
+      }catch(e){ alert('No se pudo exportar'); }
+    });
+  }
+  if (fileInp){
+    fileInp.addEventListener('change', async (ev)=>{
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      try{
+        const text = await f.text();
+        let parsed;
+        try{ parsed = JSON.parse(text); }catch(e){ throw new Error('El archivo no es JSON válido'); }
+        let list = Array.isArray(parsed) ? parsed
+                 : (Array.isArray(parsed.clients) ? parsed.clients
+                 : (Array.isArray(parsed.data) ? parsed.data : null));
+        if (!list) throw new Error('Estructura no válida. Esperaba un array o {clients:[...]}');
+        list = list.map((c,i)=> (c && c.id) ? c : {id: 'imp-'+Date.now()+'-'+i, createdAt: Date.now(), ...c});
+        clients = list;
+        await idbClear();
+        await idbPutMany(clients);
+        renderClients();
+        alert('Clientes importados ✅ ('+clients.length+')');
+      }catch(e){
+        alert('Fallo al importar: '+ (e && e.message ? e.message : e));
+      }finally{
+        ev.target.value = '';
+      }
+    });
+  }
+
+  if (pasteBtn){
+    const modal = document.createElement('div');
+    modal.id = 'pasteModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999; align-items:center; justify-content:center;';
+    modal.innerHTML = '<div style="background:#151933; border:1px solid rgba(255,255,255,.15); border-radius:12px; width:min(700px,90vw); padding:14px; color:#eef0ff;">'+
+      '<div style="font-weight:700; margin-bottom:8px;">Pega tu backup JSON</div>'+
+      '<textarea id="pasteArea" style="width:100%; height:260px; background:rgba(255,255,255,.06); color:#eef0ff; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:10px;"></textarea>'+
+      '<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">'+
+        '<button id="pasteCancel" class="btn">Cancelar</button>'+
+        '<button id="pasteImport" class="btn primary">Importar</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(modal);
+    const area = modal.querySelector('#pasteArea');
+    const cancel = modal.querySelector('#pasteCancel');
+    const imp = modal.querySelector('#pasteImport');
+
+    pasteBtn.addEventListener('click', ()=>{ modal.style.display='flex'; area.value=''; area.focus(); });
+    cancel.addEventListener('click', ()=>{ modal.style.display='none'; });
+    imp.addEventListener('click', async ()=>{
+      try{
+        const text = area.value.trim();
+        if(!text){ alert('Pega el JSON primero'); return; }
+        let parsed;
+        try{ parsed = JSON.parse(text); }catch(e){ throw new Error('El texto pegado no es JSON válido'); }
+        let list = Array.isArray(parsed) ? parsed
+                 : (Array.isArray(parsed.clients) ? parsed.clients
+                 : (Array.isArray(parsed.data) ? parsed.data : null));
+        if (!list) throw new Error('Estructura no válida. Esperaba un array o {clients:[...]}');
+        list = list.map((c,i)=> (c && c.id) ? c : {id: 'imp-'+Date.now()+'-'+i, createdAt: Date.now(), ...c});
+        clients = list;
+        await idbClear();
+        await idbPutMany(clients);
+        renderClients();
+        modal.style.display='none';
+        alert('Clientes importados ✅ ('+clients.length+')');
+      }catch(e){ alert('Fallo al importar (pegar): '+(e && e.message ? e.message : e)); }
+    });
+  }
+}
+
+// Swipe-to-delete
+let __openSwipe = null;
+function enhanceSummaryForSwipe(summaryEl){
+  if (!summaryEl || summaryEl.dataset.swipeReady) return;
+  const parent = summaryEl.closest('details.client'); if(!parent) return;
+  const id = (parent.id||'').replace(/^box-/, '') || '';
+  const content = document.createElement('div'); content.className='swipe-content';
+  while(summaryEl.firstChild){ content.appendChild(summaryEl.firstChild); }
+  const wrap = document.createElement('div'); wrap.className='swipe-wrap';
+  const actions = document.createElement('div'); actions.className='swipe-actions';
+  const btn = document.createElement('button'); btn.className='del'; btn.type='button'; btn.textContent='Eliminar';
+  btn.addEventListener('click', ()=>{ try{ deleteClient(id); }catch(e){} });
+  actions.appendChild(btn);
+  wrap.appendChild(actions); wrap.appendChild(content);
+  summaryEl.appendChild(wrap);
+  summaryEl.dataset.swipeReady='1';
+
+  let startX=0, curX=0, dragging=false;
+  const maxReveal=110, threshold=60;
+  function setX(x){ content.style.transform = 'translateX(' + (-Math.max(0, Math.min(maxReveal, x))) + 'px)'; }
+
+  content.addEventListener('touchstart', (e)=>{
+    if (e.touches.length!==1) return;
+    dragging=true; startX = e.touches[0].clientX; curX=0;
+    if (__openSwipe && __openSwipe!==content){ __openSwipe.style.transform='translateX(0)'; __openSwipe=null; }
+  }, {passive:true});
+
+  content.addEventListener('touchmove', (e)=>{
+    if(!dragging) return;
+    const dx = startX - e.touches[0].clientX;
+    if (dx>0){
+      curX = dx; setX(curX);
+      e.preventDefault(); e.stopPropagation();
+    }
+  }, {passive:false});
+
+  function end(){
+    if(!dragging) return; dragging=false;
+    if (curX > threshold){ setX(maxReveal); __openSwipe=content; }
+    else { setX(0); __openSwipe=null; }
+  }
+  content.addEventListener('touchend', end);
+  content.addEventListener('touchcancel', end);
+}
+function wireSwipe(){ document.querySelectorAll('details.client > summary').forEach(enhanceSummaryForSwipe); }
+
+async function requestPersistentStorage(){
+  try{
+    if (navigator.storage && navigator.storage.persist) {
+      const persisted = await navigator.storage.persisted();
+      if (!persisted) { await navigator.storage.persist(); }
+    }
+  }catch{}
+}
+
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveLocal, 300); }
+
+(async function init(){
+  requestPersistentStorage();
+  wireBackupButtons();
+  await loadLocal();
+  renderClients();
+  setTimeout(wireSwipe, 0);
+})();
+</script>
+
+</body>
+</html>
