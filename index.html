@@ -94,8 +94,18 @@
 
   /* ---- Swipe to delete (móvil) ---- */
   .swipe-wrap{position:relative; overflow:hidden; width:100%;}
-  .swipe-content{position:relative; z-index:2; touch-action:pan-y; transition:transform .2s ease;}
-  .swipe-actions{position:absolute; inset:0 0 0 auto; right:6px; display:flex; align-items:center; justify-content:flex-end; padding-right:2px; gap:8px; z-index:1;}
+  .swipe-content{
+    position:relative; z-index:2; touch-action:pan-y; transition:transform .18s ease;
+    width:100%;
+  }
+  /* Mantener oculto el panel rojo por defecto */
+  .swipe-actions{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end;
+    padding-right:8px; gap:8px; z-index:1; width:100%;
+    opacity:0; pointer-events:none; transition:opacity .15s ease;
+  }
+  /* Solo cuando está abierto por swipe, el panel es clicable y visible */
+  .swipe-open .swipe-actions{ opacity:1; pointer-events:auto; }
   .swipe-actions .del{background:#CC2B3A; border:1px solid rgba(0,0,0,.2); color:#fff; padding:8px 12px; border-radius:10px; font-weight:700;}
 </style>
 </head>
@@ -117,11 +127,11 @@
   </h1>
   <div id="cloudStatus" class="status">Guardado local: listo</div>
   <div id="backupControls">
-    <button id="btnExport" class="btn" style="padding:6px 10px;">Exportar clientes</button>
+    <button id="btnExport" class="btn" style="padding:6px 10px;" aria-label="Exportar clientes">Exportar clientes</button>
     <label class="btn" style="padding:6px 10px; cursor:pointer;">
-      Importar backup<input id="fileImport" type="file" accept="application/json" style="display:none;">
+      Importar backup<input id="fileImport" type="file" accept="application/json" style="display:none;" aria-label="Seleccionar archivo JSON para importar">
     </label>
-    <button id="btnPasteImport" class="btn" style="padding:6px 10px;">Pegar backup (JSON)</button>
+    <button id="btnPasteImport" class="btn" style="padding:6px 10px;" aria-label="Pegar JSON de backup">Pegar backup (JSON)</button>
   </div>
 </header>
 
@@ -135,7 +145,7 @@
   <!-- CLIENTES -->
   <section id="secClientes" class="active">
     <div class="card">
-      <button class="btn primary" id="btnAdd">+ Añadir cliente</button>
+      <button class="btn primary" id="btnAdd" aria-label="Añadir cliente">+ Añadir cliente</button>
       <span class="muted" style="margin-left:8px">Se guarda automáticamente en este dispositivo.</span>
     </div>
 
@@ -205,7 +215,7 @@ let saveTimer = null;
 
 function $(sel){ return document.querySelector(sel); }
 function el(tag, html){ const e=document.createElement(tag); e.innerHTML=html; return e; }
-function parseNum(v){ const n=parseFloat(String(v).replace(',','.')); return isFinite(n)?n:0; }
+function parseNum(v){ const n=parseFloat(String(v).replace(',', '.')); return isFinite(n)?n:0; }
 function fmt(n){ return (Number(n)||0).toFixed(2); }
 function d4(v){ return String(v||'').replace(/\\D/g,'').slice(0,4); }
 function setStatus(msg){ const s=$('#cloudStatus'); if(s) s.textContent = msg; }
@@ -301,12 +311,19 @@ function renderClients(){
     const colorClass = isAccepted(c.retirada) ? 'accepted' : 'pending';
     const node = el('div', `
       <details class="client ${c.editing?'editing':''}" id="box-${c.id}" ${c.editing?'open':''}>
-        <summary>
-          <div class="client-left">
-            <span class="chev">▶</span>
-            <span id="namehdr-${c.id}" class="client-name ${colorClass}">${(c.name||'Nombre y apellidos').replace(/</g,'&lt;')}</span>
+        <summary aria-label="Resumen del cliente">
+          <div class="swipe-wrap">
+            <div class="swipe-actions">
+              <button class="del" type="button" aria-label="Eliminar cliente">Eliminar</button>
+            </div>
+            <div class="swipe-content">
+              <div class="client-left">
+                <span class="chev">▶</span>
+                <span id="namehdr-${c.id}" class="client-name ${colorClass}">${(c.name||'Nombre y apellidos').replace(/</g,'&lt;')}</span>
+              </div>
+              <div class="client-time">${new Date(c.createdAt).toLocaleString()}</div>
+            </div>
           </div>
-          <div class="client-time">${new Date(c.createdAt).toLocaleString()}</div>
         </summary>
         <div class="client-body">
           <!-- Vista bonita -->
@@ -322,8 +339,8 @@ function renderClients(){
             <div class="kv"><div class="k">2ª apuesta</div><div>${(c.ap2.txt||'-').replace(/</g,'&lt;')} · Ganancia: ${fmt(c.ap2.ganancia)} €</div></div>
             <div class="kv"><div class="k"><strong>Ganancia final</strong></div><div><strong id="final-${c.id}" class="${final>=0?'ok':'bad'}">${fmt(final)} €</strong></div></div>
             <div class="row" style="margin-top:10px">
-              <button class="btn icon" onclick="toggleEdit('${c.id}', true)">✏️ Editar</button>
-              <button class="btn" onclick="deleteClient('${c.id}')">Eliminar</button>
+              <button class="btn icon" onclick="toggleEdit('${c.id}', true)" aria-label="Editar cliente">✏️ Editar</button>
+              <button class="btn" onclick="deleteClient('${c.id}')" aria-label="Eliminar cliente">Eliminar</button>
             </div>
           </div>
 
@@ -345,7 +362,7 @@ function renderClients(){
               <div><label>Contraseña</label>
                 <div class="row">
                   <input id="pass-${c.id}" type="password" value="${(c.pass||'').replace(/\"/g,'&quot;')}" oninput="updateClient('${c.id}','pass',this.value)">
-                  <button class="btn" type="button" onclick="const p=document.getElementById('pass-${c.id}'); p.type=p.type==='password'?'text':'password'">👁️</button>
+                  <button class="btn" type="button" onclick="const p=document.getElementById('pass-${c.id}'); p.type=p.type==='password'?'text':'password'" aria-label="Mostrar u ocultar contraseña">👁️</button>
                 </div>
               </div>
             </div>
@@ -392,8 +409,8 @@ function renderClients(){
                    oninput="updateClient('${c.id}','ap2.ganancia',this.value); updateFinal('${c.id}');">
 
             <div class="row" style="margin-top:10px;justify-content:space-between">
-              <button class="btn" onclick="deleteClient('${c.id}')">Eliminar</button>
-              <button class="btn primary" onclick="saveClient('${c.id}')">Guardar</button>
+              <button class="btn" onclick="deleteClient('${c.id}')" aria-label="Eliminar cliente">Eliminar</button>
+              <button class="btn primary" onclick="saveClient('${c.id}')" aria-label="Guardar cliente">Guardar</button>
             </div>
           </div>
         </div>
@@ -595,12 +612,23 @@ function wireBackupButtons(){
         const text = await f.text();
         let parsed;
         try{ parsed = JSON.parse(text); }catch(e){ throw new Error('El archivo no es JSON válido'); }
+
         let list = Array.isArray(parsed) ? parsed
                  : (Array.isArray(parsed.clients) ? parsed.clients
                  : (Array.isArray(parsed.data) ? parsed.data : null));
         if (!list) throw new Error('Estructura no válida. Esperaba un array o {clients:[...]}');
         list = list.map((c,i)=> (c && c.id) ? c : {id: 'imp-'+Date.now()+'-'+i, createdAt: Date.now(), ...c});
-        clients = list;
+
+        // Preguntar si fusionar o reemplazar
+        let merge = confirm('¿Quieres FUSIONAR con los clientes actuales? (Aceptar = Fusionar / Cancelar = Reemplazar)');
+        if (merge){
+          const byId = new Map(clients.map(x=>[x.id,x]));
+          list.forEach(x=> byId.set(x.id, x));
+          clients = Array.from(byId.values());
+        }else{
+          clients = list;
+        }
+
         await idbClear();
         await idbPutMany(clients);
         renderClients();
@@ -643,7 +671,16 @@ function wireBackupButtons(){
                  : (Array.isArray(parsed.data) ? parsed.data : null));
         if (!list) throw new Error('Estructura no válida. Esperaba un array o {clients:[...]}');
         list = list.map((c,i)=> (c && c.id) ? c : {id: 'imp-'+Date.now()+'-'+i, createdAt: Date.now(), ...c});
-        clients = list;
+
+        let merge = confirm('¿Quieres FUSIONAR con los clientes actuales? (Aceptar = Fusionar / Cancelar = Reemplazar)');
+        if (merge){
+          const byId = new Map(clients.map(x=>[x.id,x]));
+          list.forEach(x=> byId.set(x.id, x));
+          clients = Array.from(byId.values());
+        }else{
+          clients = list;
+        }
+
         await idbClear();
         await idbPutMany(clients);
         renderClients();
@@ -654,60 +691,75 @@ function wireBackupButtons(){
   }
 }
 
-// Swipe-to-delete
+// Swipe-to-delete mejorado (iPhone-friendly)
 let __openSwipe = null;
 function enhanceSummaryForSwipe(summaryEl){
   if (!summaryEl || summaryEl.dataset.swipeReady) return;
   const parent = summaryEl.closest('details.client'); if(!parent) return;
   const id = (parent.id||'').replace(/^box-/, '') || '';
-  const content = document.createElement('div'); content.className='swipe-content';
-  while(summaryEl.firstChild){ content.appendChild(summaryEl.firstChild); }
-  const wrap = document.createElement('div'); wrap.className='swipe-wrap';
-  const actions = document.createElement('div'); actions.className='swipe-actions';
-  const btn = document.createElement('button'); btn.className='del'; btn.type='button'; btn.textContent='Eliminar';
-  btn.addEventListener('click', ()=>{ try{ deleteClient(id); }catch(e){} });
-  actions.appendChild(btn);
-  wrap.appendChild(actions); wrap.appendChild(content);
-  summaryEl.appendChild(wrap);
+
+  const wrap = summaryEl.querySelector('.swipe-wrap');
+  const actions = wrap.querySelector('.swipe-actions');
+  const content = wrap.querySelector('.swipe-content');
+  const delBtn = actions.querySelector('.del');
+  delBtn.addEventListener('click', ()=>{ try{ deleteClient(id); }catch(e){} });
+
   summaryEl.dataset.swipeReady='1';
 
-  let startX=0, curX=0, dragging=false;
+  let startX=0, curX=0, dragging=false, moved=false;
   const maxReveal=110, threshold=60;
-  function setX(x){ content.style.transform = 'translateX(' + (-Math.max(0, Math.min(maxReveal, x))) + 'px)'; }
+
+  function setX(x){
+    const clamped = Math.max(0, Math.min(maxReveal, x));
+    content.style.transform = 'translateX(' + (-clamped) + 'px)';
+    if (clamped > 4){
+      wrap.classList.add('swipe-open');
+    }else{
+      wrap.classList.remove('swipe-open');
+    }
+  }
+
+  // Evitar que un click abra/cierre cuando hubo swipe horizontal
+  summaryEl.addEventListener('click', (ev)=>{
+    const matrix = new WebKitCSSMatrix(getComputedStyle(content).transform);
+    if (Math.abs(matrix.m41) > 4){ // hay desplazamiento activo
+      ev.preventDefault();
+      ev.stopPropagation();
+      // Cerrar si tocas el área de contenido estando abierto
+      setX(0); __openSwipe=null;
+    }
+  }, true);
 
   content.addEventListener('touchstart', (e)=>{
     if (e.touches.length!==1) return;
-    dragging=true; startX = e.touches[0].clientX; curX=0;
-    if (__openSwipe && __openSwipe!==content){ __openSwipe.style.transform='translateX(0)'; __openSwipe=null; }
+    dragging=true; moved=false; startX = e.touches[0].clientX; curX=0;
+    // Cerrar otro swipe abierto
+    if (__openSwipe && __openSwipe!==content){ __openSwipe.style.transform='translateX(0)'; __openSwipe.closest('.swipe-wrap')?.classList.remove('swipe-open'); __openSwipe=null; }
   }, {passive:true});
 
   content.addEventListener('touchmove', (e)=>{
     if(!dragging) return;
     const dx = startX - e.touches[0].clientX;
-    if (dx>0){
+    if (dx>0){ // deslizar hacia la izquierda
       curX = dx; setX(curX);
+      moved = true;
+      // Prevenir scroll vertical accidental cuando hay desplazamiento horizontal
       e.preventDefault(); e.stopPropagation();
     }
   }, {passive:false});
 
   function end(){
     if(!dragging) return; dragging=false;
-    if (curX > threshold){ setX(maxReveal); __openSwipe=content; }
-    else { setX(0); __openSwipe=null; }
+    if (curX > threshold){
+      setX(maxReveal); __openSwipe=content;
+    } else {
+      setX(0); __openSwipe=null;
+    }
   }
   content.addEventListener('touchend', end);
   content.addEventListener('touchcancel', end);
 }
 function wireSwipe(){ document.querySelectorAll('details.client > summary').forEach(enhanceSummaryForSwipe); }
-
-async function requestPersistentStorage(){
-  try{
-    if (navigator.storage && navigator.storage.persist) {
-      const persisted = await navigator.storage.persisted();
-      if (!persisted) { await navigator.storage.persist(); }
-    }
-  }catch{}
-}
 
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveLocal, 300); }
 
