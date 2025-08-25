@@ -459,8 +459,8 @@ $('#sb_calc').addEventListener('click', ()=>{
       const r1_equal = win1(x_equal,c2i), r2_equal = win2(x_equal,c2i);
       out.push('<div class="kpis">'+
         kpi('Importe C1 (igualar)', fmt(x_equal)+' €', {signColor:false, sub:'Esc.1: '+fmt(r1_equal)+' € · Esc.2: '+fmt(r2_equal)+' €'}) +
-        kpi('C1 = 0€ pérdida/ganancia', fmt(x_zero_loss_c1)+' €', {signColor:false, sub:'C2 quedaría en '+fmt(r2_if_c1_zero)+' €'}) +
-        kpi('C2 = 0€ pérdida/ganancia', fmt(x_zero_loss_c2)+' €', {signColor:false, sub:'C1 quedaría en '+fmt(r1_if_c2_zero)+' €'}) +
+        kpi('Si gana Casa 1: 0€ beneficio/pérdida neta', fmt(x_zero_loss_c1)+' €', {signColor:false, sub:'Si gana Casa 2: '+fmt(r2_if_c1_zero)+' €'}) +
+        kpi('Si gana Casa 2: 0€ beneficio/pérdida neta', fmt(x_zero_loss_c2)+' €', {signColor:false, sub:'Si gana Casa 1: '+fmt(r1_if_c2_zero)+' €'}) +
       '</div>');
     } else {
       const y_equal = (c1i*c1c)/c2c;
@@ -471,8 +471,8 @@ $('#sb_calc').addEventListener('click', ()=>{
       const r1_equal = win1(c1i,y_equal), r2_equal = win2(c1i,y_equal);
       out.push('<div class="kpis">'+
         kpi('Importe C2 (igualar)', fmt(y_equal)+' €', {signColor:false, sub:'Esc.1: '+fmt(r1_equal)+' € · Esc.2: '+fmt(r2_equal)+' €'}) +
-        kpi('C1 = 0€ pérdida/ganancia', fmt(y_zero_loss_c1)+' €', {signColor:false, sub:'C2 quedaría en '+fmt(r2_if_c1_zero)+' €'}) +
-        kpi('C2 = 0€ pérdida/ganancia', fmt(y_zero_loss_c2)+' €', {signColor:false, sub:'C1 quedaría en '+fmt(r1_if_c2_zero)+' €'}) +
+        kpi('Si gana Casa 1: 0€ beneficio/pérdida neta', fmt(y_zero_loss_c1)+' €', {signColor:false, sub:'Si gana Casa 2: '+fmt(r2_if_c1_zero)+' €'}) +
+        kpi('Si gana Casa 2: 0€ beneficio/pérdida neta', fmt(y_zero_loss_c2)+' €', {signColor:false, sub:'Si gana Casa 1: '+fmt(r1_if_c2_zero)+' €'}) +
       '</div>');
     }
   }
